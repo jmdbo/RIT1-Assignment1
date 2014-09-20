@@ -306,7 +306,12 @@ public class routing {
             }
             // Update router vector
             Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
-            
+            if(pt.Vec()==null){
+                pt.update_vec(data, TTL);
+            }
+            else if(!Arrays.equals(pt.Vec(), data)){
+                pt.update_vec(data, TTL);
+            }
             // Put here the code to store the vector received in the neighbour object associated
             // Do not forget to call 'network_changed' if the vector has changed!
 

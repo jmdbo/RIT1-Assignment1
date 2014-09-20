@@ -195,10 +195,10 @@ public final class neighbour {
      * @return true if is valid, false otherwise
      */
     public boolean vec_valid() { 
-        System.err.println("neighbour.vec_valid() not implemented yet");
         Date ttl = new Date(vec_TTL*1000);
         long sum = ttl.getTime() + vec_date.getTime();
         Date now = new Date();
+        System.out.println("Now: "+now+"/n TTL: "+vec_TTL+" seconds - Expiration date: "+sum);
         return (vec!=null && (now.getTime()<sum)); 
         // TO DO - it should also test if the time elapsed since vec_date is less than TTL
     }
