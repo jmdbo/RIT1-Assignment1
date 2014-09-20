@@ -219,6 +219,7 @@ public class routing {
         
         for (neighbour pt : neig.values()) {
             send_local_ROUTE(pt);
+            Log("Sending ROUTE to "+pt+"/n");
         }
         return true;
     }
@@ -306,7 +307,12 @@ public class routing {
             }
             // Update router vector
             Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
-            
+            if(pt.Vec()==null){
+                pt.update_vec(data, TTL);
+            }
+            else if(!Arrays.equals(pt.Vec(), data)){
+                pt.update_vec(data, TTL);
+            }
             // Put here the code to store the vector received in the neighbour object associated
             // Do not forget to call 'network_changed' if the vector has changed!
 
@@ -407,7 +413,8 @@ public class routing {
         timer_announce = new javax.swing.Timer(duration, new ActionListener(){ 
             public void actionPerformed(ActionEvent evt){
                 //Tratar do temporizador depois
-                Log("Timer triggered\n");
+                //Log("Timer triggered\n");
+                send_local_ROUTE();
             }        
         });
         timer_announce.setRepeats(true);
