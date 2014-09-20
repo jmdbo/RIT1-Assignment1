@@ -219,6 +219,7 @@ public class routing {
         
         for (neighbour pt : neig.values()) {
             send_local_ROUTE(pt);
+            Log("Sending ROUTE to "+pt+"/n");
         }
         return true;
     }
@@ -412,7 +413,8 @@ public class routing {
         timer_announce = new javax.swing.Timer(duration, new ActionListener(){ 
             public void actionPerformed(ActionEvent evt){
                 //Tratar do temporizador depois
-                Log("Timer triggered\n");
+                //Log("Timer triggered\n");
+                send_local_ROUTE();
             }        
         });
         timer_announce.setRepeats(true);
