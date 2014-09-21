@@ -196,6 +196,9 @@ public final class neighbour {
      */
     public boolean vec_valid() { 
         Date ttl = new Date(vec_TTL*1000);
+        if(vec_date==null){
+            return false;
+        }
         long sum = ttl.getTime() + vec_date.getTime();
         Date now = new Date();
         System.out.println("Now: "+now+"/n TTL: "+vec_TTL+" seconds - Expiration date: "+sum);

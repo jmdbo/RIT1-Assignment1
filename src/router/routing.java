@@ -219,7 +219,7 @@ public class routing {
         
         for (neighbour pt : neig.values()) {
             send_local_ROUTE(pt);
-            Log("Sending ROUTE to "+pt+"/n");
+            Log("Sending ROUTE to "+pt+"\n");
         }
         return true;
     }
