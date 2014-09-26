@@ -306,12 +306,13 @@ public class routing {
                 return false;
             }
             // Update router vector
-            Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
+            //Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
             if(pt.Vec()==null){
-                pt.update_vec(data, TTL);
+                pt.update_vec(data, TTL);         
+
             }
             else if(!Arrays.equals(pt.Vec(), data)){
-                pt.update_vec(data, TTL);
+                pt.update_vec(data, TTL);                
             }
             // Put here the code to store the vector received in the neighbour object associated
             // Do not forget to call 'network_changed' if the vector has changed!
@@ -357,9 +358,26 @@ public class routing {
 
             // Add local node
             tab.put(local_name, new RouteEntry(local_name, ' ', 0));
-
             // Implement the DV algorithm here!
             Log("routing.update_routing_table not implemented yet\n");
+            for (neighbour vis : neig.values()) {
+                if (vis.Vec() != null) {
+                    for (Entry ent : vis.vec) {
+                        if (tab.containsKey(ent.dest)) {
+                            RouteEntry route_old = tab.get(ent.dest);
+                            if (ent.dist + vis.dist < route_old.dist) {
+                                RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                                tab.replace(ent.dest, r_entry);
+                            }
+                        } else {
+                            RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                            tab.put(ent.dest, r_entry);
+                        }
+                    }
+                }
+            }
+            
+            
             // Implement here the distance vector algorithm:            
             // 1) Start by an implementation of the basic DV algorithm
             // 2) On a second stage, add the detection of hold down conditions
@@ -414,6 +432,8 @@ public class routing {
             public void actionPerformed(ActionEvent evt){
                 //Tratar do temporizador depois
                 //Log("Timer triggered\n");
+                
+                update_routing_table();
                 send_local_ROUTE();
             }        
         });
@@ -489,9 +509,13 @@ public class routing {
      * @return the address of the next hop, or ' ' if not found.
      */
     public char next_Hop(char dest) {
-        Log("routing.next_Hop not implemented yet\n");
+        //Log("routing.next_Hop not implemented yet\n");
         // Place here the code to get the next-hop to reach dest
-        return ' ';
+        if(tab.containsKey(dest)){
+            RouteEntry route = tab.get(dest);
+            return route.next_hop;
+            
+        }else return ' ';
     }
 
     /**
