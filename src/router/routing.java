@@ -102,7 +102,7 @@ public class routing {
      * @param MAX_holddwn Hold down time
      * @param win reference to main window object
      * @param ds unicast datagram socket
-     * @param TabObject Graphical object with the 
+     * @param TabObject Graphical object with the
      */
     public routing(char local_name, neighbourList neig, int period,
             int min_interval, boolean splitHorz, boolean holddwn, int MAX_holddwn,
@@ -127,6 +127,7 @@ public class routing {
 
     /**
      * Starts routing thread
+     *
      * @return true if successful
      */
     public boolean start() {
@@ -137,17 +138,17 @@ public class routing {
 
     /**
      * Handle a network change notification
-     * @param send_always  if true, send always the ROUTE packet
+     *
+     * @param send_always if true, send always the ROUTE packet
      */
     public void network_changed(boolean send_always) {
         Log("routing.network_changed not implemented yet\n");
         if (win.is_sendIfChanges()) {
-            
+
             // COMPLETE THIS PART
             // Recalculate the table and send it if send_always or if the table changed
             // Control the time between ROUTEs; 
             //     if min_interval was not reached sleep until that time before sending the ROUTE packet.
-            
         }
     }
 
@@ -187,11 +188,13 @@ public class routing {
             dos.writeInt(tab.size());
             for (RouteEntry rt : tab.values()) {
                 // This is a good place to put the split horizon implementation ...
-                if((rt.next_hop==n.name)&&splitHorizon){
+                if ((rt.next_hop == n.name) && splitHorizon) {
                     RouteEntry rt_sh = new RouteEntry(rt);
-                    if(rt_sh.dist<30){rt_sh.dist=30;}
+                    if (rt_sh.dist < router.MAX_DISTANCE) {
+                        rt_sh.dist = router.MAX_DISTANCE;
+                    }
                     rt_sh.writeEntry(dos);
-                } else{
+                } else {
                     rt.writeEntry(dos);
                 }
             }
@@ -222,10 +225,9 @@ public class routing {
         //Log("routing.send_local_ROUTE() not implemented yet\n");
         // send the local vector to all the neighbor routers, one by one
         //    using the method above (send_local_ROUTE(neighbour))
-        
         for (neighbour pt : neig.values()) {
             send_local_ROUTE(pt);
-            Log("Sending ROUTE to "+pt+"\n");
+            Log("Sending ROUTE to " + pt + "\n");
         }
         return true;
     }
@@ -313,12 +315,11 @@ public class routing {
             }
             // Update router vector
             //Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
-            if(pt.Vec()==null){
-                pt.update_vec(data, TTL);         
+            if (pt.Vec() == null) {
+                pt.update_vec(data, TTL);
 
-            }
-            else if(!Arrays.equals(pt.Vec(), data)){
-                pt.update_vec(data, TTL);                
+            } else if (!Arrays.equals(pt.Vec(), data)) {
+                pt.update_vec(data, TTL);
             }
             // Put here the code to store the vector received in the neighbour object associated
             // Do not forget to call 'network_changed' if the vector has changed!
@@ -375,16 +376,15 @@ public class routing {
                                 RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                                 tab.replace(ent.dest, r_entry);
                             }
-                        } else if(ent.dist<30){
-                            //TODO Falar disto ao prof.
-                            RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                        } else if (ent.dist < router.MAX_DISTANCE) {
+                            RouteEntry r_entry;
+                            r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                             tab.put(ent.dest, r_entry);
                         }
                     }
                 }
             }
-            
-            
+
             // Implement here the distance vector algorithm:            
             // 1) Start by an implementation of the basic DV algorithm
             // 2) On a second stage, add the detection of hold down conditions
@@ -435,15 +435,16 @@ public class routing {
         //    timeout event handler
         // It should wait duration ms until triggering the first time;
         //   then on, it should run periodically
-        timer_announce = new javax.swing.Timer(duration, new ActionListener(){ 
-            public void actionPerformed(ActionEvent evt){
+        timer_announce = new javax.swing.Timer(duration, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent evt) {
                 update_routing_table();
                 send_local_ROUTE();
-            }        
+            }
         });
         timer_announce.setRepeats(true);
         timer_announce.start();
-        
+
     }
 
     /**
@@ -498,10 +499,7 @@ public class routing {
 
     /* ------------------------------------ */
     // Holddown timer
-
     // Complete the code here ...
-    
-    
     /**
      * *************************************************************************
      * DATA HANDLING
@@ -515,13 +513,15 @@ public class routing {
     public char next_Hop(char dest) {
         //Log("routing.next_Hop not implemented yet\n");
         // Place here the code to get the next-hop to reach dest
-        
-        if(tab.containsKey(dest)){
+
+        if (tab.containsKey(dest)) {
             RouteEntry route = tab.get(dest);
             return route.next_hop;
-            
-        }else return ' ';
-        
+
+        } else {
+            return ' ';
+        }
+
     }
 
     /**
