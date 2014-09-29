@@ -187,7 +187,13 @@ public class routing {
             dos.writeInt(tab.size());
             for (RouteEntry rt : tab.values()) {
                 // This is a good place to put the split horizon implementation ...
-                rt.writeEntry(dos);
+                if((rt.next_hop==n.name)&&splitHorizon){
+                    RouteEntry rt_sh = new RouteEntry(rt);
+                    if(rt_sh.dist<30){rt_sh.dist=30;}
+                    rt_sh.writeEntry(dos);
+                } else{
+                    rt.writeEntry(dos);
+                }
             }
             byte[] buffer = os.toByteArray();
             DatagramPacket dp = new DatagramPacket(buffer, buffer.length);
@@ -359,7 +365,7 @@ public class routing {
             // Add local node
             tab.put(local_name, new RouteEntry(local_name, ' ', 0));
             // Implement the DV algorithm here!
-            Log("routing.update_routing_table not implemented yet\n");
+            //Log("routing.update_routing_table not implemented yet\n");
             for (neighbour vis : neig.values()) {
                 if (vis.Vec() != null) {
                     for (Entry ent : vis.vec) {
@@ -369,7 +375,8 @@ public class routing {
                                 RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                                 tab.replace(ent.dest, r_entry);
                             }
-                        } else {
+                        } else if(ent.dist<30){
+                            //TODO Falar disto ao prof.
                             RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                             tab.put(ent.dest, r_entry);
                         }
@@ -430,9 +437,6 @@ public class routing {
         //   then on, it should run periodically
         timer_announce = new javax.swing.Timer(duration, new ActionListener(){ 
             public void actionPerformed(ActionEvent evt){
-                //Tratar do temporizador depois
-                //Log("Timer triggered\n");
-                
                 update_routing_table();
                 send_local_ROUTE();
             }        
@@ -511,11 +515,13 @@ public class routing {
     public char next_Hop(char dest) {
         //Log("routing.next_Hop not implemented yet\n");
         // Place here the code to get the next-hop to reach dest
+        
         if(tab.containsKey(dest)){
             RouteEntry route = tab.get(dest);
             return route.next_hop;
             
         }else return ' ';
+        
     }
 
     /**
