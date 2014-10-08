@@ -66,6 +66,7 @@ public class routing {
 
     public Date lastSending;
     private javax.swing.Timer timer_announce;
+    private javax.swing.Timer timer_holddown;
 
     // Configuration variables
     /**
@@ -133,6 +134,7 @@ public class routing {
     public boolean start() {
         update_routing_table();
         start_announce_timer();
+        start_holddownTimer();
         return true;
     }
 
@@ -365,25 +367,68 @@ public class routing {
 
             // Add local node
             tab.put(local_name, new RouteEntry(local_name, ' ', 0));
-            // Implement the DV algorithm here!
-            //Log("routing.update_routing_table not implemented yet\n");
+            // DV algorithm implementation
             for (neighbour vis : neig.values()) {
                 if (vis.Vec() != null) {
+                    
                     for (Entry ent : vis.vec) {
+                        //RouteEntry oldEntry;
+                        
+                        //
+                        if(baktab.containsKey(ent.dest)){
+                            RouteEntry oldEntry = baktab.get(ent.dest);
+                            if(oldEntry.isHolddown && !tab.containsKey(ent.dest)){
+                                tab.put(oldEntry.dest, new RouteEntry(oldEntry));
+                            }
+                        }
                         if (tab.containsKey(ent.dest)) {
                             RouteEntry route_old = tab.get(ent.dest);
-                            if (ent.dist + vis.dist < route_old.dist) {
-                                RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
-                                tab.replace(ent.dest, r_entry);
+                            if(route_old.isHolddown){
+                                if (ent.dist + vis.dist <= route_old.distHolddown) {
+                                    RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                                    tab.replace(ent.dest, r_entry);
+                                }
+                            } else{
+                                if (ent.dist + vis.dist < route_old.dist) {
+                                    RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                                    tab.replace(ent.dest, r_entry);
+                                }
                             }
-                        } else if (ent.dist < router.MAX_DISTANCE) {
+                        } else if (ent.dist+vis.dist < router.MAX_DISTANCE ) {
                             RouteEntry r_entry;
                             r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                             tab.put(ent.dest, r_entry);
-                        }
+                        } else if (ent.dist+vis.dist >= router.MAX_DISTANCE && holddown){
+                            for(RouteEntry rt1: baktab.values()){
+                                if((ent.dest == rt1.dest) && (vis.name == rt1.next_hop) && !rt1.isHolddown){
+                                    RouteEntry r_entry;
+                                    r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                                    r_entry.distHolddown=rt1.dist;
+                                    r_entry.isHolddown = true;
+                                    r_entry.holddownCounter = 0;
+                                    tab.put(ent.dest, r_entry);                                    
+                                }
+                            }                            
+                        }                        
                     }
                 }
             }
+            //Checking for missing entries!
+   
+            for(RouteEntry rt1 : baktab.values()){
+                if(!tab.containsKey(rt1.dest) && holddown){
+                    if(!rt1.isHolddown){
+                        rt1.isHolddown=true;
+                        rt1.holddownCounter=0;
+                        rt1.distHolddown = rt1.dist;
+                        rt1.dist = router.MAX_DISTANCE;
+                    }
+                    RouteEntry r_entry = new RouteEntry(rt1);
+                    
+                    tab.put(r_entry.dest, r_entry);
+                }
+            }
+            
 
             // Implement here the distance vector algorithm:            
             // 1) Start by an implementation of the basic DV algorithm
@@ -410,7 +455,7 @@ public class routing {
                 tableObj.setValueAt("" + r.dest, i, 0);
                 tableObj.setValueAt("" + r.next_hop, i, 1);
                 tableObj.setValueAt("" + r.dist, i, 2);
-                tableObj.setValueAt("", i, 3);      // Put here the code to write the holddown state
+                tableObj.setValueAt(""+ r.isHolddown, i, 3);      
             } else {
                 tableObj.setValueAt("", i, 0);
                 tableObj.setValueAt("", i, 1);
@@ -499,6 +544,27 @@ public class routing {
 
     /* ------------------------------------ */
     // Holddown timer
+    private void start_holddownTimer(){
+        timer_holddown = new javax.swing.Timer(1000,new ActionListener(){
+            @Override
+            public void actionPerformed(ActionEvent evt) { 
+                System.out.println("Timmer Holddown Triggered");
+                for(RouteEntry rt : tab.values()){
+                    if(rt.isHolddown){
+                        rt.holddownCounter++;
+                    }
+                    if(rt.holddownCounter>MAX_holddown){
+                        tab.remove(rt.dest);
+                        update_routing_window();
+                    }
+                }
+                
+            }           
+        });
+        timer_holddown.setRepeats(true);
+        timer_holddown.start();
+    }
+    
     // Complete the code here ...
     /**
      * *************************************************************************
@@ -670,7 +736,8 @@ public class routing {
                 return false;
             }
             String path = new String(sbuf2, 0, n);
-            Log(" (" + sender + "-" + dest + "," + seq + "):'" + msg + "':Path='" + path + win.local_name() + "'\n");
+            Log(" (" + sender + "-" + dest + "," + seq + "):'" + msg + "':Path='" 
+                    + path + win.local_name() + "'\n");
             // Test routing table
             if (win.is_local_name(dest)) {
                 // Arrived at destination

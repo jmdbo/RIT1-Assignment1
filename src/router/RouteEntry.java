@@ -22,6 +22,11 @@ public class RouteEntry extends Entry {
     /** next hop */
     public char next_hop;
     /** Holdown counter */
+    public int holddownCounter;
+    
+    public boolean isHolddown;
+    
+    public int distHolddown;
     // Declare here a field to store one holdown counter
     //     and add the additional necessary methods to handle it!
 
@@ -32,6 +37,8 @@ public class RouteEntry extends Entry {
     public RouteEntry(char dest) {
         super(dest, router.MAX_DISTANCE);
         next_hop= ' ';
+        this.isHolddown=false;
+        this.holddownCounter=0;
     }
 
     /**
@@ -40,7 +47,10 @@ public class RouteEntry extends Entry {
      */
     public RouteEntry(RouteEntry src) {
         super(src);
-        next_hop= src.next_hop;
+        this.next_hop= src.next_hop;
+        this.holddownCounter = src.holddownCounter;
+        this.isHolddown = src.isHolddown;
+        this.distHolddown = src.distHolddown;
     }
 
     /**
@@ -52,6 +62,8 @@ public class RouteEntry extends Entry {
     public RouteEntry(char dest, char next_hop, int dist) {
         super(dest, dist);
         this.next_hop= next_hop;
+        this.isHolddown = false;
+        this.holddownCounter = 0;
     }
     
 // Holdown algorithm specific field
