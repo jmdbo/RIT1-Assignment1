@@ -367,17 +367,29 @@ public class routing {
 
             // Add local node
             tab.put(local_name, new RouteEntry(local_name, ' ', 0));
+            
+            for(RouteEntry rt1 : baktab.values()){
+                if(neig.locate_neig(rt1.next_hop)==null && holddown && rt1.next_hop!= ' '){
+                    if(!rt1.isHolddown){
+                        rt1.isHolddown=true;
+                        rt1.holddownCounter=0;
+                        rt1.distHolddown = rt1.dist;
+                        rt1.dist = router.MAX_DISTANCE;
+                    }
+                    RouteEntry r_entry = new RouteEntry(rt1);
+                    if(r_entry.holddownCounter<= MAX_holddown)
+                        tab.put(r_entry.dest, r_entry);
+                }
+            }
             // DV algorithm implementation
             for (neighbour vis : neig.values()) {
                 if (vis.Vec() != null) {
                     
                     for (Entry ent : vis.vec) {
-                        //RouteEntry oldEntry;
-                        
-                        //
-                        if(baktab.containsKey(ent.dest)){
+                        if(baktab.containsKey(ent.dest) && holddown){
                             RouteEntry oldEntry = baktab.get(ent.dest);
-                            if(oldEntry.isHolddown && !tab.containsKey(ent.dest)){
+                            if(oldEntry.isHolddown && !tab.containsKey(ent.dest)
+                                    && oldEntry.holddownCounter<= MAX_holddown){
                                 tab.put(oldEntry.dest, new RouteEntry(oldEntry));
                             }
                         }
@@ -402,7 +414,7 @@ public class routing {
                             for(RouteEntry rt1: baktab.values()){
                                 if((ent.dest == rt1.dest) && (vis.name == rt1.next_hop) && !rt1.isHolddown){
                                     RouteEntry r_entry;
-                                    r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
+                                    r_entry = new RouteEntry(ent.dest, vis.name, router.MAX_DISTANCE);
                                     r_entry.distHolddown=rt1.dist;
                                     r_entry.isHolddown = true;
                                     r_entry.holddownCounter = 0;
@@ -415,19 +427,7 @@ public class routing {
             }
             //Checking for missing entries!
    
-            for(RouteEntry rt1 : baktab.values()){
-                if(!tab.containsKey(rt1.dest) && holddown){
-                    if(!rt1.isHolddown){
-                        rt1.isHolddown=true;
-                        rt1.holddownCounter=0;
-                        rt1.distHolddown = rt1.dist;
-                        rt1.dist = router.MAX_DISTANCE;
-                    }
-                    RouteEntry r_entry = new RouteEntry(rt1);
-                    
-                    tab.put(r_entry.dest, r_entry);
-                }
-            }
+            
             
 
             // Implement here the distance vector algorithm:            
@@ -553,12 +553,7 @@ public class routing {
                     if(rt.isHolddown){
                         rt.holddownCounter++;
                     }
-                    if(rt.holddownCounter>MAX_holddown){
-                        tab.remove(rt.dest);
-                        update_routing_window();
-                    }
                 }
-                
             }           
         });
         timer_holddown.setRepeats(true);
