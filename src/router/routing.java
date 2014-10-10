@@ -23,7 +23,8 @@ import java.awt.event.*;
  * Routing_process objects, and handles DATA packets
  */
 public class routing {
-
+    
+    private Date lastROUTETime;
     /**
      * Maximum length of the Entry vector length
      */
@@ -132,8 +133,8 @@ public class routing {
      * @return true if successful
      */
     public boolean start() {
-        update_routing_table();
         start_announce_timer();
+        update_routing_table();        
         start_holddownTimer();
         return true;
     }
@@ -144,9 +145,30 @@ public class routing {
      * @param send_always if true, send always the ROUTE packet
      */
     public void network_changed(boolean send_always) {
-        Log("routing.network_changed not implemented yet\n");
+        //Log("routing.network_changed not implemented yet\n");
         if (win.is_sendIfChanges()) {
-
+            long timeRoute;
+            if(lastROUTETime==null){
+                timeRoute = 0;
+            } else{
+                timeRoute = lastROUTETime.getTime();
+            }
+            Date nowDate = new Date();
+            long now = nowDate.getTime();
+            if(now>= timeRoute + (min_interval)){
+                timer_announce.stop();
+                update_routing_table();
+                send_local_ROUTE();
+                lastROUTETime = new Date();
+                timer_announce.setInitialDelay(period*1000);
+                timer_announce.start();
+            } else {
+                timer_announce.stop();
+                int waitTime=(int)((timeRoute+min_interval)-now);
+                timer_announce.setInitialDelay(waitTime);
+                timer_announce.start();
+            }
+            
             // COMPLETE THIS PART
             // Recalculate the table and send it if send_always or if the table changed
             // Control the time between ROUTEs; 
@@ -255,6 +277,20 @@ public class routing {
         }
         return true;
     }
+    
+    public static boolean entry_vectors_equal(Entry[] vec1, Entry[] vec2){
+        if((vec1==null) || (vec2 == null))
+            return false;
+        if (vec1.length != vec2.length)
+            return false;
+        
+        for (int i = 0; i < vec2.length; i++) {
+             if(vec1[i].dest != vec2[i].dest || vec1[i].dist != vec2[i].dist){
+                 return false;
+             }            
+        }
+        return true;
+    }
 
     /**
      * Get the routing table contents
@@ -319,10 +355,13 @@ public class routing {
             //Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
             if (pt.Vec() == null) {
                 pt.update_vec(data, TTL);
+                network_changed(false);
 
-            } else if (!Arrays.equals(pt.Vec(), data)) {
+            } else if (!entry_vectors_equal(pt.Vec(), data)) {
                 pt.update_vec(data, TTL);
+                network_changed(false);
             }
+            update_routing_window();
             // Put here the code to store the vector received in the neighbour object associated
             // Do not forget to call 'network_changed' if the vector has changed!
 
@@ -370,13 +409,14 @@ public class routing {
             
             for(RouteEntry rt1 : baktab.values()){
                 if(neig.locate_neig(rt1.next_hop)==null && holddown && rt1.next_hop!= ' '){
-                    if(!rt1.isHolddown){
-                        rt1.isHolddown=true;
-                        rt1.holddownCounter=0;
-                        rt1.distHolddown = rt1.dist;
-                        rt1.dist = router.MAX_DISTANCE;
-                    }
+                    
                     RouteEntry r_entry = new RouteEntry(rt1);
+                    if(!r_entry.isHolddown){
+                        r_entry.isHolddown=true;
+                        r_entry.holddownCounter=0;
+                        r_entry.distHolddown = rt1.dist;
+                        r_entry.dist = router.MAX_DISTANCE;
+                    }
                     if(r_entry.holddownCounter<= MAX_holddown)
                         tab.put(r_entry.dest, r_entry);
                 }
@@ -431,11 +471,11 @@ public class routing {
             
 
             // Implement here the distance vector algorithm:            
-            // 1) Start by an implementation of the basic DV algorithm
-            // 2) On a second stage, add the detection of hold down conditions
+            // 1) Start by an implementation of the basic DV algori
+                        // 2) On a second stage, add the detection of hold down conditions
             // 3) On a final stage, add the support for topology changes
         }
-        // Echo routing table 
+        // Echo routing table
         update_routing_window();
         return !routing_tables_equal(tab, baktab);
     }
@@ -482,9 +522,10 @@ public class routing {
         //   then on, it should run periodically
         timer_announce = new javax.swing.Timer(duration, new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent evt) {
+            public void actionPerformed(ActionEvent evt) {                
                 update_routing_table();
                 send_local_ROUTE();
+                lastROUTETime = new Date();
             }
         });
         timer_announce.setRepeats(true);
@@ -548,7 +589,8 @@ public class routing {
         timer_holddown = new javax.swing.Timer(1000,new ActionListener(){
             @Override
             public void actionPerformed(ActionEvent evt) { 
-                System.out.println("Timmer Holddown Triggered");
+                //System.out.println("Timmer Holddown Triggered");
+                //update_routing_window();
                 for(RouteEntry rt : tab.values()){
                     if(rt.isHolddown){
                         rt.holddownCounter++;

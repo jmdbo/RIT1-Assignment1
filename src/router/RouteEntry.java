@@ -21,11 +21,14 @@ public class RouteEntry extends Entry {
 // New fields
     /** next hop */
     public char next_hop;
+    
     /** Holdown counter */
     public int holddownCounter;
     
+    //Indentifies if the entry is in Hold Down or not
     public boolean isHolddown;
     
+    //Distance vector had before going into Hold Down
     public int distHolddown;
     // Declare here a field to store one holdown counter
     //     and add the additional necessary methods to handle it!

@@ -38,7 +38,7 @@ public final class neighbour {
     public Date vec_date;
     /** Vector TTL */
     public long vec_TTL;    // in seconds
-    
+        
     /**
      * Return the name of the neighbour
      * @return the character with the name
