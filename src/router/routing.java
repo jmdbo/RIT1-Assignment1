@@ -145,16 +145,20 @@ public class routing {
      * @param send_always if true, send always the ROUTE packet
      */
     public void network_changed(boolean send_always) {
-        //Log("routing.network_changed not implemented yet\n");
         if (win.is_sendIfChanges()) {
             long timeRoute;
+            //Verifica se o lastROUTETime é null
             if(lastROUTETime==null){
+                //Se for define o tempo como sendo 0;
                 timeRoute = 0;
             } else{
+                //Se nao for converte para long o tempo do último envio
                 timeRoute = lastROUTETime.getTime();
             }
+            //Guardamos numa variável a data actual
             Date nowDate = new Date();
             long now = nowDate.getTime();
+            //Se já tiver passado o intervalo mínimo de tempo envia logo o pacote ROUTE
             if(now>= timeRoute + (min_interval)){
                 timer_announce.stop();
                 update_routing_table();
@@ -162,14 +166,15 @@ public class routing {
                 lastROUTETime = new Date();
                 timer_announce.setInitialDelay(period*1000);
                 timer_announce.start();
-            } else {
+            } 
+            //Se não reagenda o timer para enviar o pacote de ROUTE assim que o
+            //delay mínimo expirar.
+            else {
                 timer_announce.stop();
                 int waitTime=(int)((timeRoute+min_interval)-now);
                 timer_announce.setInitialDelay(waitTime);
                 timer_announce.start();
             }
-            
-            // COMPLETE THIS PART
             // Recalculate the table and send it if send_always or if the table changed
             // Control the time between ROUTEs; 
             //     if min_interval was not reached sleep until that time before sending the ROUTE packet.
@@ -241,12 +246,11 @@ public class routing {
      * @return true if successful, false otherwise
      */
     public boolean send_local_ROUTE() {
+        
         if ((tab == null) || tab.isEmpty()) {
             Log2("Cannot send ROUTE: invalid routing table\n");
             return true;
         }
-
-        //Log("routing.send_local_ROUTE() not implemented yet\n");
         // send the local vector to all the neighbor routers, one by one
         //    using the method above (send_local_ROUTE(neighbour))
         for (neighbour pt : neig.values()) {
@@ -278,6 +282,13 @@ public class routing {
         return true;
     }
     
+    /**
+     * Compare the entry vectors vec1 and vec2
+     *
+     * @param vec1 - Entry vector 1
+     * @param vec2 - Entry vector 2
+     * @return true if they are equal, false otherwise
+     */
     public static boolean entry_vectors_equal(Entry[] vec1, Entry[] vec2){
         if((vec1==null) || (vec2 == null))
             return false;
@@ -352,19 +363,21 @@ public class routing {
                 return false;
             }
             // Update router vector
-            //Log("routing.process_ROUTE not implemented yet: ROUTE vector not stored\n");
+            //Code to store the vector received in the neighbour object associated
+            //If the neighbour has no Entries vector, updates it and calls
+            //Network changed
             if (pt.Vec() == null) {
                 pt.update_vec(data, TTL);
                 network_changed(false);
 
-            } else if (!entry_vectors_equal(pt.Vec(), data)) {
+            } 
+            //If the vector stored is different from the one received updates it
+            //And calls network_changed
+            else if (!entry_vectors_equal(pt.Vec(), data)) {
                 pt.update_vec(data, TTL);
                 network_changed(false);
             }
-            update_routing_window();
-            // Put here the code to store the vector received in the neighbour object associated
-            // Do not forget to call 'network_changed' if the vector has changed!
-
+            update_routing_window();           
             return true;
         } catch (IOException e) {
             Log("\nERROR - Packet too short\n");
@@ -407,9 +420,11 @@ public class routing {
             // Add local node
             tab.put(local_name, new RouteEntry(local_name, ' ', 0));
             
+            /*Verifies if the route to a destination through the former optimal
+            neighbour still exists, if not puts the route in Hold Down
+            */
             for(RouteEntry rt1 : baktab.values()){
-                if(neig.locate_neig(rt1.next_hop)==null && holddown && rt1.next_hop!= ' '){
-                    
+                if(neig.locate_neig(rt1.next_hop)==null && holddown && rt1.next_hop!= ' '){                    
                     RouteEntry r_entry = new RouteEntry(rt1);
                     if(!r_entry.isHolddown){
                         r_entry.isHolddown=true;
@@ -417,15 +432,17 @@ public class routing {
                         r_entry.distHolddown = rt1.dist;
                         r_entry.dist = router.MAX_DISTANCE;
                     }
+                    //Checks if the MAX_holddown has been attained
                     if(r_entry.holddownCounter<= MAX_holddown)
                         tab.put(r_entry.dest, r_entry);
                 }
             }
             // DV algorithm implementation
             for (neighbour vis : neig.values()) {
-                if (vis.Vec() != null) {
-                    
+                if (vis.Vec() != null) {                    
                     for (Entry ent : vis.vec) {
+                        //Checks if the current entry was in holddown and adds them to
+                        //the new table if it was in holddown
                         if(baktab.containsKey(ent.dest) && holddown){
                             RouteEntry oldEntry = baktab.get(ent.dest);
                             if(oldEntry.isHolddown && !tab.containsKey(ent.dest)
@@ -433,9 +450,15 @@ public class routing {
                                 tab.put(oldEntry.dest, new RouteEntry(oldEntry));
                             }
                         }
+                        /*If the new table already has an entry checks if the 
+                        new entry is a better route than the existent.
+                        If not, adds it to the table.
+                        */
                         if (tab.containsKey(ent.dest)) {
                             RouteEntry route_old = tab.get(ent.dest);
                             if(route_old.isHolddown){
+                                //Verifies if a better route exists while on 
+                                //Hold Down
                                 if (ent.dist + vis.dist <= route_old.distHolddown) {
                                     RouteEntry r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                                     tab.replace(ent.dest, r_entry);
@@ -450,7 +473,12 @@ public class routing {
                             RouteEntry r_entry;
                             r_entry = new RouteEntry(ent.dest, vis.name, ent.dist + vis.dist);
                             tab.put(ent.dest, r_entry);
-                        } else if (ent.dist+vis.dist >= router.MAX_DISTANCE && holddown){
+                        } 
+                        /*If an infinite distance is received, checks if that 
+                        distance has come from the former optimal neighbour and
+                        if yes puts the route in hold down.
+                        */
+                        else if (ent.dist+vis.dist >= router.MAX_DISTANCE && holddown){
                             for(RouteEntry rt1: baktab.values()){
                                 if((ent.dest == rt1.dest) && (vis.name == rt1.next_hop) && !rt1.isHolddown){
                                     RouteEntry r_entry;
@@ -465,15 +493,6 @@ public class routing {
                     }
                 }
             }
-            //Checking for missing entries!
-   
-            
-            
-
-            // Implement here the distance vector algorithm:            
-            // 1) Start by an implementation of the basic DV algori
-                        // 2) On a second stage, add the detection of hold down conditions
-            // 3) On a final stage, add the support for topology changes
         }
         // Echo routing table
         update_routing_window();
