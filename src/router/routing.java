@@ -24,7 +24,7 @@ import java.awt.event.*;
  */
 public class routing {
     
-    private Date lastROUTETime;
+    //private Date lastROUTETime;
     /**
      * Maximum length of the Entry vector length
      */
@@ -147,33 +147,29 @@ public class routing {
     public void network_changed(boolean send_always) {
         if (win.is_sendIfChanges()) {
             long timeRoute;
-            //Verifica se o lastROUTETime é null
-            if(lastROUTETime==null){
-                //Se for define o tempo como sendo 0;
+            //Checks if lastROUTETime is null
+            if(lastSending==null){
+                //If it is, defines time as 0;
                 timeRoute = 0;
             } else{
-                //Se nao for converte para long o tempo do último envio
-                timeRoute = lastROUTETime.getTime();
+                //If not, we convert the date into a long integer
+                timeRoute = lastSending.getTime();
             }
-            //Guardamos numa variável a data actual
+            //We save the current date into a variable
             Date nowDate = new Date();
             long now = nowDate.getTime();
-            //Se já tiver passado o intervalo mínimo de tempo envia logo o pacote ROUTE
-            if(now>= timeRoute + (min_interval)){
+            //If min_interval has elapsed, we send the route package immediatly
+            //if(now>= timeRoute + (min_interval)){
+            if(test_time_since_last_update()){
                 timer_announce.stop();
-                update_routing_table();
-                send_local_ROUTE();
-                lastROUTETime = new Date();
-                timer_announce.setInitialDelay(period*1000);
+                //lastROUTETime = new Date();
+                timer_announce.setInitialDelay(0);
                 timer_announce.start();
             } 
-            //Se não reagenda o timer para enviar o pacote de ROUTE assim que o
-            //delay mínimo expirar.
+            //If not we reschedule the timer to send the route package as soon
+            //as the minimum delay expires.
             else {
-                timer_announce.stop();
-                int waitTime=(int)((timeRoute+min_interval)-now);
-                timer_announce.setInitialDelay(waitTime);
-                timer_announce.start();
+                reschedule_announce_timer();
             }
             // Recalculate the table and send it if send_always or if the table changed
             // Control the time between ROUTEs; 
@@ -544,7 +540,7 @@ public class routing {
             public void actionPerformed(ActionEvent evt) {                
                 update_routing_table();
                 send_local_ROUTE();
-                lastROUTETime = new Date();
+                //lastROUTETime = new Date();
             }
         });
         timer_announce.setRepeats(true);
@@ -597,9 +593,21 @@ public class routing {
      * last sending
      */
     public void reschedule_announce_timer() {
-        Log("routing.reschedule_announce_timer not implemented yet\n");
+        //Log("routing.reschedule_announce_timer not implemented yet\n");
         // use run_announce_timer to wait until min_interval ms before triggering the timer
         //    lastSending stores the time of the last sending of ROUTE
+        Date nowDate = new Date();
+        long now = nowDate.getTime();
+        long timeRoute;
+        if(lastSending==null){
+            timeRoute=0;
+        }else{
+            timeRoute=lastSending.getTime();
+        }               
+        timer_announce.stop();
+        int waitTime=(int)((timeRoute+min_interval)-now);
+        timer_announce.setInitialDelay(waitTime);
+        timer_announce.start();
     }
 
     /* ------------------------------------ */
