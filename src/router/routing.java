@@ -162,7 +162,6 @@ public class routing {
             //if(now>= timeRoute + (min_interval)){
             if(test_time_since_last_update()){
                 timer_announce.stop();
-                //lastROUTETime = new Date();
                 timer_announce.setInitialDelay(0);
                 timer_announce.start();
             } 
